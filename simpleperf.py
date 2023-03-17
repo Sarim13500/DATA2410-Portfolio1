@@ -1,3 +1,4 @@
+
 import socket
 from socket import *
 import sys
@@ -11,6 +12,7 @@ Format = "MB"
 time = 50
 
 virker = True
+klienter = []
 
 
 #Tomme argimenter kan løses på to måter. Bruke default eller avslutte prosess
@@ -79,6 +81,24 @@ for i in sys.argv:
     x=x+1
 
 
+def handle_client(conn, addr):
+    print(f"New client connected: {addr}")
+
+    # Add the client to the list of clients
+    klienter.append(conn)
+
+    # Loop to handle incoming messages from the client
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        message = data.decode()
+        print(f"Received message from {addr}: {message}")
+
+
+
+
+
 if virker == False:
     print("Feil i syntax. Prøv igjen")
 
@@ -93,11 +113,13 @@ else:
         sock.bind((Ip, Port))
         sock.listen(5)
 
+        print("[Server] Klar til å koble seg til ")
         # mens serveren er åpen
-        while True:
-            #Klart til å betjene klient
-            print("[Server] Klar til å koble seg til ")
+        print("klar til å motta")
 
+        while True:
+            conn, addr = sock.accept()
+            handle_client(conn, addr)
 
 
 
@@ -107,6 +129,8 @@ else:
 
         sock = socket(AF_INET, SOCK_STREAM)
         sock.connect((Ip, Port))
+        message = "Hei"
+        sock.sendall(message.encode())
 
 
     else:
