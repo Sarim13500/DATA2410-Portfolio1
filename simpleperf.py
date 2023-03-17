@@ -1,9 +1,11 @@
 
-import socket
+import argparse
 from socket import *
 import sys
 import _thread as thread
 
+
+"""
 input_lengde = len(sys.argv)
 
 Port = 8088
@@ -12,7 +14,6 @@ Format = "MB"
 time = 50
 
 virker = True
-klienter = []
 
 
 #Tomme argimenter kan løses på to måter. Bruke default eller avslutte prosess
@@ -79,7 +80,7 @@ for i in sys.argv:
         # if (no_of_bytes == ""):
 
     x=x+1
-
+"""
 
 def handle_client(conn, addr):
     print(f"New client connected: {addr}")
@@ -98,19 +99,53 @@ def handle_client(conn, addr):
 
 
 
+def check_port(val):
+    try:
+        value = int(val)
+    except ValueError:
+        raise argparse.ArgumentTypeError('expected an integer but you entered a string')
+    if (value<1024 or value>65535):
+        print('it is not a valid port')
+        sys.exit()
+    return value
 
-if virker == False:
-    print("Feil i syntax. Prøv igjen")
 
 
-else:
-    #Server kode
-    if (sys.argv[1] == "-s"):
+if __name__ == '__main__':
+
+    klienter = []
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--server', '-s', action='store_true', help='server mode',)
+
+    parser.add_argument('--client', '-c', action='store_true', help='client mode',)
+
+    parser.add_argument('--bind', '-b', type=str, default='127.0.0.1')
+
+    parser.add_argument('--port', '-p', type=check_port, default=8088)
+
+    parser.add_argument('--format', '-f', type=str, default='MB')
+
+    parser.add_argument('--serverip', '-I', type=str, default='127.0.0.1')
+
+    parser.add_argument('--time', '-t', type=int, default=50)
+
+    parser.add_argument('--interval', '-i', type=int)
+
+    parser.add_argument('--parallel', '-P', type=int, default=1)
+
+    parser.add_argument('--num', '-n', type=str, default="MB")
+
+    args = parser.parse_args()
 
 
+    if (args.server == True ):
+
+        # Server kode
         sock = socket(AF_INET, SOCK_STREAM)
 
-        sock.bind((Ip, Port))
+        sock.bind((args.bind, args.port))
         sock.listen(5)
 
         print("[Server] Klar til å koble seg til ")
@@ -124,14 +159,8 @@ else:
 
 
 
-    #Klient kode
-    elif (sys.argv[1] == "-c"):
-
+    elif (args.client == True):
         sock = socket(AF_INET, SOCK_STREAM)
-        sock.connect((Ip, Port))
+        sock.connect((args.serverip, args.port))
         message = "Hei"
         sock.sendall(message.encode())
-
-
-    else:
-        print("Error: you must run either in server or client mode")
