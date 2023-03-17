@@ -2,6 +2,7 @@
 import argparse
 from socket import *
 import sys
+import ipaddress
 import _thread as thread
 
 
@@ -107,7 +108,62 @@ def check_port(val):
     if (value<1024 or value>65535):
         print('it is not a valid port')
         sys.exit()
-    return value
+
+
+
+def ip_check(address):
+    try:
+        val= ipaddress.ip_address(address)
+        print("IP-adressen er på godkjent")
+    except:
+        print("IP-adressen er på feil format")
+        sys.exit()
+
+
+
+def check_time(time):
+    try:
+        time_value = int(time)
+    except ValueError:
+        raise argparse.ArgumentTypeError('expected an integer but you entered a string')
+    if (time_value <= 0):
+        print('Seconds must be higher than 0')
+        sys.exit()
+
+
+
+def check_interval(interval):
+    try:
+        interval_val = int(interval)
+
+        if interval_val < 0:
+            print("Intervallet må være større enn 0")
+            sys.exit()
+
+    except ValueError:
+        raise argparse.ArgumentTypeError('expected an integer but you entered a string')
+
+
+
+def check_parallel(parallel):
+    try:
+        parallel_val = int(parallel)
+    except ValueError:
+        raise argparse.ArgumentTypeError('expected an integer but you entered a string')
+    if (parallel_val < 1 or parallel_val > 5):
+        print('Value is not correct, it should be between 1 and 5')
+        sys.exit()
+
+
+def check_format(format):
+    try:
+        Format = str(format)
+    except ValueError:
+        raise argparse.ArgumentTypeError('expected a String but you entered an Integer')
+    if Format != "KB" and Format != "MB" and Format != "B":
+        print('it is not valid format')
+        sys.exit()
+
 
 
 
@@ -142,8 +198,12 @@ if __name__ == '__main__':
 
     if (args.server == True ):
 
+
         # Server kode
         sock = socket(AF_INET, SOCK_STREAM)
+
+        check_parallel(args.parallel)
+
 
         sock.bind((args.bind, args.port))
         sock.listen(5)
@@ -162,5 +222,7 @@ if __name__ == '__main__':
     elif (args.client == True):
         sock = socket(AF_INET, SOCK_STREAM)
         sock.connect((args.serverip, args.port))
-        message = "Hei"
-        sock.sendall(message.encode())
+
+        while True:
+            message = input()
+            sock.sendall(message.encode())
