@@ -83,8 +83,38 @@ for i in sys.argv:
     x=x+1
 """
 
-def handle_client(conn, addr):
-    print(f"New client connected: {addr}")
+def server(ip, port, format):
+    # Server kode
+    sock = socket(AF_INET, SOCK_STREAM)
+
+    #check_parallel(args.parallel)
+
+    sock.bind((ip, port))
+    sock.listen(5)
+
+    print("[Server] Klar til å koble seg til ")
+    # mens serveren er åpen
+    print("klar til å motta")
+
+    while True:
+        conn, addr = sock.accept()
+        ipc, portc = addr
+        handle_client(conn, ipc, portc)
+
+
+def klient(ip, port):
+    sock = socket(AF_INET, SOCK_STREAM)
+    sock.connect((ip, port))
+
+    while True:
+        message = input()
+        sock.sendall(message.encode())
+
+
+
+
+def handle_client(conn, ip, port):
+    print(f"New client connected: {ip} : {port}")
 
     # Add the client to the list of clients
     klienter.append(conn)
@@ -95,7 +125,7 @@ def handle_client(conn, addr):
         if not data:
             break
         message = data.decode()
-        print(f"Received message from {addr}: {message}")
+        print(f"Received message from {ip}:{port}:  {message}")
 
 
 
@@ -114,7 +144,7 @@ def check_port(val):
 def ip_check(address):
     try:
         val= ipaddress.ip_address(address)
-        print("IP-adressen er på godkjent")
+        print("IP-adressen er nå godkjent")
     except:
         print("IP-adressen er på feil format")
         sys.exit()
@@ -191,38 +221,49 @@ if __name__ == '__main__':
 
     parser.add_argument('--parallel', '-P', type=int, default=1)
 
-    parser.add_argument('--num', '-n', type=str, default="MB")
+    parser.add_argument('--num', '-n', type=str, default="MB") #, required=True trenger vi denne?
 
     args = parser.parse_args()
 
 
-    if (args.server == True ):
+
+    #Ny
+    if(args.server == True and args.client == True):
+        print('Can´t have both server and client command')
+        sys.exit()
 
 
-        # Server kode
-        sock = socket(AF_INET, SOCK_STREAM)
+    elif (args.server == True ):
 
-        check_parallel(args.parallel)
+        ip_check(args.bind)
+        check_port(args.port)
+
+        if args.format:
+            check_format(args.format)
 
 
-        sock.bind((args.bind, args.port))
-        sock.listen(5)
-
-        print("[Server] Klar til å koble seg til ")
-        # mens serveren er åpen
-        print("klar til å motta")
-
-        while True:
-            conn, addr = sock.accept()
-            handle_client(conn, addr)
-
+        server(args.bind, args.port, args.format)
 
 
 
+
+
+
+
+    #Klient kode
     elif (args.client == True):
-        sock = socket(AF_INET, SOCK_STREAM)
-        sock.connect((args.serverip, args.port))
 
-        while True:
-            message = input()
-            sock.sendall(message.encode())
+        ip_check(args.serverip)
+        check_port(args.port)
+        check_time(args.time)
+        print(args.port)
+
+
+
+        klient(serverip, port)
+
+
+
+
+    else:
+        print("Error: you must run either in server or client mode")
