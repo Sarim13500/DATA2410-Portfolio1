@@ -3,85 +3,11 @@ import argparse
 from socket import *
 import sys
 import ipaddress
+import time
 import _thread as thread
 
 
-"""
-input_lengde = len(sys.argv)
 
-Port = 8088
-Ip = '127.0.0.1'
-Format = "MB"
-time = 50
-
-virker = True
-
-
-#Tomme argimenter kan løses på to måter. Bruke default eller avslutte prosess
-
-
-x = 0
-
-#While løkke som går gjennom input argumentene
-for i in sys.argv:
-
-
-    # Finner porten fra input argumentene
-    if i =="-p":
-        Port = int (sys.argv[x+1])
-
-        if Port<1024:
-            print("Feil! Porten stemmer ikke. Skriv inn en port som er større eller lik 1024")
-            virker = False
-        elif Port > 65535:
-            print("Feil! Porten stemmer ikke. Skriv inn en port som er mindre eller lik 65535")
-            virker = False
-
-
-    # Finner foramten fra input argumentene
-    if i == "-f":
-        Format = sys.argv[x+1]
-        if Format != "KB" and Format != "MB" and Format != "B":
-            print("Skriv inn riktig format. Enten KB, MB eller B etter -f")
-            virker = False
-
-
-    # Finner ip-adressen fra input argumentene
-    if (i == "-b"):
-        Ip = sys.argv[x+1]
-        print(Ip)
-
-
-
-    # Finner ip-adressen fra input argumentene
-    if (i == "-I"):
-        Ip = sys.argv[x+1]
-
-
-    # Finner tiden fra input argumentene
-    if (i == "-t"):
-        time = int(sys.argv[x+1])
-        if (time <= 0):
-            print("Tid må være større en 0")
-
-
-    # Finner intervallet fra input argumentene
-    if (i == "-i"):
-        intervall = sys.argv[x+1]
-
-
-    # Finner antall paralelle klienter fra input argumentene
-    if (i == "-P"):
-        paraleller = sys.argv[x+1]
-
-
-    # Finner antall paralelle klienter fra input argumentene
-    if (i == "-n"):
-        no_of_bytes = sys.argv[x+1]
-        # if (no_of_bytes == ""):
-
-    x=x+1
-"""
 
 def server(ip, port, format):
     # Server kode
@@ -102,13 +28,26 @@ def server(ip, port, format):
         handle_client(conn, ipc, portc)
 
 
-def klient(ip, port):
+def klient(ip, port, tid, data):
     sock = socket(AF_INET, SOCK_STREAM)
     sock.connect((ip, port))
 
-    while True:
-        message = input()
+
+
+    #senddata is 1 byte
+    senddata = "A"
+
+    #Senddate will be 1000 bytes after the loop
+    while len(senddata)<1000:
+        senddata += "A"
+
+    endtime = time.time() + tid
+
+    while time.time() < endtime:
+
+        message = str(len(senddata))
         sock.sendall(message.encode())
+
 
 
 
@@ -215,7 +154,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--serverip', '-I', type=str, default='127.0.0.1')
 
-    parser.add_argument('--time', '-t', type=int, default=50)
+    parser.add_argument('--time', '-t', type=int, default=2)
 
     parser.add_argument('--interval', '-i', type=int)
 
@@ -250,17 +189,18 @@ if __name__ == '__main__':
 
 
 
+
+
     #Klient kode
     elif (args.client == True):
 
         ip_check(args.serverip)
         check_port(args.port)
         check_time(args.time)
-        print(args.port)
 
+        #implementer en greie for konvertering av num
 
-
-        klient(serverip, port)
+        klient(args.serverip, args.port, args.time, args.num)
 
 
 
