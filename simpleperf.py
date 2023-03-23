@@ -9,6 +9,84 @@ import _thread as thread
 
 
 
+
+
+
+def sendmld(format,array,sock):
+
+
+
+    antalldata = ""
+    antalldataint = 0
+    sendebytes = 0
+    #print(data)
+    frmat = ""
+
+    # senddata is 1 byte
+    senddata = "A"
+
+    # Senddate will be 1000 bytes after the loop
+    while len(senddata) < 1000:
+        senddata += "A"
+
+
+    # finne ut av denne
+    for i in array:
+        try:
+            i = int(i)
+        except:
+            i = str(i)
+
+        if isinstance(i, int):
+            i = str(i)
+            antalldata += i
+            print("antall data:" + antalldata)
+
+        elif isinstance(i, str):
+            frmat += i
+            print("frmt:" + frmat)
+
+    try:
+        antalldataint = int(antalldata)
+    except:
+        print("gi gyldige tall")
+        sys.exit()
+
+    frmat = frmat.upper()
+
+    if frmat:
+        # finner format
+        if frmat != "B" and frmat != "MB" and frmat != "KB":
+            print("Give a valid format")
+            sys.exit()
+        elif (frmat == "B" or frmat == "MB" or frmat == "KB"):
+            int(antalldata)
+
+            if frmat == "B":
+                while sendebytes < antalldataint:
+                    sock.sendall(senddata.encode())
+
+                    sendebytes += 1
+
+            elif frmat == "KB":
+                int(antalldata)
+
+                antalldata = antalldataint / 1000
+                while sendebytes < antalldata:
+                    sock.sendall(senddata.encode())
+
+                    sendebytes += 1
+
+            elif frmat == "MB":
+                int(antalldata)
+
+                antalldata = antalldataint / (1000 * 1000)
+                while sendebytes < antalldata:
+                    sock.sendall(senddata.encode())
+
+                    sendebytes += 1
+
+
 def server(ip, port, format):
     # Server kode
     sock = socket(AF_INET, SOCK_STREAM)
@@ -30,86 +108,61 @@ def server(ip, port, format):
 
 
 
-def klient(ip, port, tid, data, parallel):
+
+
+def klient(ip, port, tid, data):
     sock = socket(AF_INET, SOCK_STREAM)
     sock.connect((ip, port))
 
-    sock.sendall(str(parallel).encode())
 
-    sendebytes =0
-    print(data)
-    frmat = ""
 
 
     #kode for format
     if data:
         size  = list(data)
-        antalldata =""
-        antalldataint =0
 
-        for i in  size:
+        sjekkkmb = size[-2] + size[-1]
+        print(sjekkkmb)
+        sjekkb = size[-1]
+
+
+
+
+
+
+        if (sjekkkmb=="KB" or sjekkkmb=="MB"):
+
+            format=sjekkkmb
+            print(format)
+            sendmld(format,size,sock)
+
+        elif sjekkb == "B":
+
+            result = ""
+            for i in range(len(size) - 1):
+                result += size[i]
+
+
             try:
-                i = int(i)
+                prov = int(result)
             except:
-                i = str(i)
-
-            if isinstance(i, int):
-                i = str(i)
-                antalldata += i
-                print("antall data:" + antalldata)
-
-            elif isinstance(i, str):
-                frmat += i
-                print("frmt:" +frmat)
-        try:
-            antalldataint = int (antalldata)
-        except:
-            print("gi gyldige tall")
-
-        frmat = frmat.upper()
+                print("fungerer ikke")
+                sys.exit()
 
 
+            if not isinstance(prov, int):
+                print(result)
+                print("det går ikke")
+                sys.exit()
 
-    #senddata is 1 byte
-    senddata = "A"
-
-    #Senddate will be 1000 bytes after the loop
-    while len(senddata)<1000:
-        senddata += "A"
+            format=sjekkb
+            print(format)
+            sendmld(format, size,sock)
 
 
-    if frmat:
-        #finner format
-        if frmat != "B" and frmat != "MB" and frmat!= "KB":
-            print("Give a valid format")
+        else:
+            print("Feil")
             sys.exit()
-        elif(frmat == "B" or frmat== "MB" or frmat == "KB"):
-            int(antalldata)
-
-            if frmat =="B":
-                while sendebytes < antalldataint:
-                    sock.sendall(senddata.encode())
-
-                    sendebytes += len(senddata)
-
-            elif frmat == "KB":
-                int(antalldata)
-
-                antalldata = antalldataint/1000
-                while sendebytes < antalldata:
-                    sock.sendall(senddata.encode())
-
-                    sendebytes += len(senddata)
-
-            elif frmat == "MB":
-                int(antalldata)
-
-                antalldata = antalldataint/(1000*1000)
-                while sendebytes < antalldata:
-
-                    sock.sendall(senddata.encode())
-
-                    sendebytes += len(senddata)
 
 
     else:
@@ -232,7 +285,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--serverip', '-I', type=str, default='127.0.0.1')
 
-    parser.add_argument('--time', '-t', type=int, default=2)
+    parser.add_argument('--time', '-t', type=int, default=1)
 
     parser.add_argument('--interval', '-i', type=int)
 
@@ -280,7 +333,7 @@ if __name__ == '__main__':
 
         #implementer en greie for konvertering av num
         while i < args.parallel:
-            klient(args.serverip, args.port, args.time, args.num, args.parallel)
+            klient(args.serverip, args.port, args.time, args.num)
             i = i+1
 
 
