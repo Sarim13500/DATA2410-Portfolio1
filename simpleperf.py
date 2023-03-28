@@ -4,6 +4,8 @@ from socket import *
 import sys
 import ipaddress
 import time
+from prettytable import *
+
 import _thread as thread
 
 
@@ -68,10 +70,11 @@ def sendmld(format,array,sock):
 
                     sendebytes += 1
 
+
             elif frmat == "KB":
                 int(antalldata)
 
-                antalldata = antalldataint / 1000
+                antalldata = antalldataint * 1000
                 while sendebytes < antalldata:
                     sock.sendall(senddata.encode())
 
@@ -80,7 +83,7 @@ def sendmld(format,array,sock):
             elif frmat == "MB":
                 int(antalldata)
 
-                antalldata = antalldataint / (1000 * 1000)
+                antalldata = antalldataint * (1000 * 1000)
                 while sendebytes < antalldata:
                     sock.sendall(senddata.encode())
 
@@ -102,8 +105,47 @@ def server(ip, port, format):
 
     while True:
         conn, addr = sock.accept()
-        ipc, portc = addr
-        handle_client(conn, ipc, portc)
+        handle_client(conn, addr, format)
+
+
+
+
+
+def handle_client(conn, addr, format):
+    print(f"New client connected: {addr}")
+    antallkb = 0
+    # Add the client to the list of clients
+    tabell = []
+    tabell.append(["ID", "Interval", "Transfer", "Bandwidth"])
+    entabell = PrettyTable()
+    entabell.field_names = ["ID", "Interval", "Transfer", "Bandwidth"]
+
+
+    klienter.append(conn)
+
+
+    # Loop to handle incoming messages from the client
+    start_time = time.time()
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        message = data.decode()
+        antallkb = antallkb +1
+        #print(antallkb)
+
+        #print(f"Received message from {addr}:  {message}")
+
+    end_time = time.time()
+    interval = end_time -start_time
+
+    kbstr = str (antallkb)
+    kbstr = kbstr + "KB"
+    mbps=str( (antallkb/interval)/125) + "mbps"
+    newrow = (addr, interval, kbstr, mbps )
+
+    entabell.add_row(newrow)
+    print(entabell)
 
 
 
@@ -170,32 +212,16 @@ def klient(ip, port, tid, data):
 
         while time.time() < endtime:
 
+            senddata = "A"
+
+            while len(senddata) < 1000:
+                senddata += "A"
+
             message = senddata
             sock.sendall(message.encode())
 
 
 
-
-
-def handle_client(conn, ip, port):
-    print(f"New client connected: {ip} : {port}")
-    antallkb = 0
-    # Add the client to the list of clients
-    tabell = ["ID", "Interval", "Transfer", "Bandwidth"]
-
-    klienter.append(conn)
-
-
-    # Loop to handle incoming messages from the client
-    while True:
-        data = conn.recv(1024)
-        if not data:
-            break
-        message = data.decode()
-        antallkb = antallkb +1
-        print(antallkb)
-
-        print(f"Received message from {ip}:{port}:  {message}")
 
 
 
