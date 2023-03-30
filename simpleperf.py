@@ -1,11 +1,11 @@
 
 import argparse
+import threading
 from socket import *
 import sys
 import ipaddress
 import time
 from prettytable import *
-
 import _thread as thread
 
 
@@ -32,7 +32,7 @@ def sendmld(format,array,sock):
         senddata += "A"
 
 
-    # finne ut av denne
+    # finner format
     for i in array:
         try:
             i = int(i)
@@ -69,6 +69,7 @@ def sendmld(format,array,sock):
                     sock.sendall(senddata.encode())
 
                     sendebytes += 1
+                return sendebytes
 
 
             elif frmat == "KB":
@@ -79,15 +80,20 @@ def sendmld(format,array,sock):
                     sock.sendall(senddata.encode())
 
                     sendebytes += 1
+                return sendebytes
+
 
             elif frmat == "MB":
                 int(antalldata)
+
 
                 antalldata = antalldataint * (1000 * 1000)
                 while sendebytes < antalldata:
                     sock.sendall(senddata.encode())
 
                     sendebytes += 1
+                return sendebytes
+    print("format er dette: " + frmat)
 
 
 def server(ip, port, format):
@@ -95,7 +101,7 @@ def server(ip, port, format):
     sock = socket(AF_INET, SOCK_STREAM)
 
     #check_parallel(args.parallel)
-
+    format = "B"
     sock.bind((ip, port))
     sock.listen(5)
 
@@ -105,18 +111,16 @@ def server(ip, port, format):
 
     while True:
         conn, addr = sock.accept()
-        handle_client(conn, addr, format)
-
-
-
+        #handle_client(conn, addr, format)
+        server_thread= threading.Thread(target=handle_client, args=(conn, addr, format,))
+        server_thread.start()
 
 
 def handle_client(conn, addr, format):
     print(f"New client connected: {addr}")
     antallkb = 0
     # Add the client to the list of clients
-    tabell = []
-    tabell.append(["ID", "Interval", "Transfer", "Bandwidth"])
+
     entabell = PrettyTable()
     entabell.field_names = ["ID", "Interval", "Transfer", "Bandwidth"]
 
@@ -132,27 +136,30 @@ def handle_client(conn, addr, format):
             break
         message = data.decode()
         antallkb = antallkb +1
-        #print(antallkb)
 
-        #print(f"Received message from {addr}:  {message}")
+
+
 
     end_time = time.time()
     interval = end_time -start_time
 
     kbstr = str (antallkb)
     kbstr = kbstr + "KB"
-    mbps=str( (antallkb/interval)/125) + "mbps"
+    mbps=str(antallkb/interval) + "mbps"
     newrow = (addr, interval, kbstr, mbps )
 
     entabell.add_row(newrow)
     print(entabell)
 
 
+    msg = f"Det ble motatt {antallkb} KB"
+    conn.send(msg.encode())
 
 
 
 
-def klient(ip, port, tid, data):
+
+def klient(ip, port, tid, data, interval):
     sock = socket(AF_INET, SOCK_STREAM)
     sock.connect((ip, port))
 
@@ -169,14 +176,13 @@ def klient(ip, port, tid, data):
 
 
 
-
-
-
         if (sjekkkmb=="KB" or sjekkkmb=="MB"):
 
             format=sjekkkmb
             print(format)
-            sendmld(format,size,sock)
+
+            transfer = sendmld(format,size,sock)
+            results([ip,port],interval,transfer)
 
         elif sjekkb == "B":
 
@@ -187,6 +193,7 @@ def klient(ip, port, tid, data):
 
             try:
                 prov = int(result)
+
             except:
                 print("fungerer ikke")
                 sys.exit()
@@ -199,7 +206,9 @@ def klient(ip, port, tid, data):
 
             format=sjekkb
             print(format)
-            sendmld(format, size,sock)
+            transfer = sendmld(format, size,sock)
+
+            results([ip,port], interval, transfer)
 
 
         else:
@@ -221,6 +230,21 @@ def klient(ip, port, tid, data):
             sock.sendall(message.encode())
 
 
+
+
+def results(id, interval, transfer):
+    # Calculate bandwidth in bits per second
+    bandwidth = transfer / interval
+
+    # Create a new table with the appropriate columns
+    table = PrettyTable()
+    table.field_names = ["ID", "Interval (s)", "Transfer (kb)", "Bandwidth (mbps)"]
+
+    # Add a new row to the table
+    table.add_row([id, interval, transfer, bandwidth])
+
+    # Print the table
+    print(table)
 
 
 
@@ -329,6 +353,9 @@ if __name__ == '__main__':
         sys.exit()
 
 
+
+
+    #server
     elif (args.server == True ):
 
         ip_check(args.bind)
@@ -357,10 +384,28 @@ if __name__ == '__main__':
         check_time(args.time)
         check_parallel(args.parallel)
 
+        if args.interval:
+            check_interval(args.interval)
+        else:
+            args.interval =1
+
+
+        client_ports = []
+
+
+        for i in range (0, args.parallel):
+            client_ports.append(args.port + i)
+
         #implementer en greie for konvertering av num
-        while i < args.parallel:
-            klient(args.serverip, args.port, args.time, args.num)
-            i = i+1
+        #while i < args.parallel:
+        #klient(args.serverip, args.port, args.time, args.num, args.interval)
+
+        for k in client_ports:
+            thread = threading.Thread(target = klient, args = (args.serverip, args.port, args.time, args.num, args.interval,))
+            thread.start()
+
+
+        #i = i+1
 
 
 
