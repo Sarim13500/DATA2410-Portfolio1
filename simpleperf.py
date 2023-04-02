@@ -14,26 +14,27 @@ import _thread as thread
 
 
 
-def sendmld(format,array,sock):
+def FinnSendtBytes(format, array, sock):
 
 
 
     antalldata = ""
     antalldataint = 0
     sendebytes = 0
-    #print(data)
     frmat = ""
 
     # senddata is 1 byte
     senddata = "A"
 
-    # Senddate will be 1000 bytes after the loop
+    # Senddata will be 1000 bytes after the loop
     while len(senddata) < 1000:
         senddata += "A"
 
 
     # finner format
     for i in array:
+
+
         try:
             i = int(i)
         except:
@@ -48,11 +49,15 @@ def sendmld(format,array,sock):
             frmat += i
             print("frmt:" + frmat)
 
+
+
     try:
         antalldataint = int(antalldata)
     except:
         print("gi gyldige tall")
         sys.exit()
+
+
 
     frmat = frmat.upper()
 
@@ -61,6 +66,9 @@ def sendmld(format,array,sock):
         if frmat != "B" and frmat != "MB" and frmat != "KB":
             print("Give a valid format")
             sys.exit()
+
+
+
         elif (frmat == "B" or frmat == "MB" or frmat == "KB"):
             int(antalldata)
 
@@ -159,7 +167,8 @@ def handle_client(conn, addr, format):
 
 
 
-def klient(ip, port, tid, data, interval):
+def klient(ip, port, tid, dataSendes, interval, formatut):
+
     sock = socket(AF_INET, SOCK_STREAM)
     sock.connect((ip, port))
 
@@ -167,8 +176,8 @@ def klient(ip, port, tid, data, interval):
 
 
     #kode for format
-    if data:
-        size  = list(data)
+    if dataSendes:
+        size  = list(dataSendes)
 
         sjekkkmb = size[-2] + size[-1]
         print(sjekkkmb)
@@ -176,39 +185,40 @@ def klient(ip, port, tid, data, interval):
 
 
 
-        if (sjekkkmb=="KB" or sjekkkmb=="MB"):
+        if sjekkkmb=="KB":
 
             format=sjekkkmb
+            #formatut="KB"
             print(format)
 
-            transfer = sendmld(format,size,sock)
-            results([ip,port],interval,transfer)
+            transfer = FinnSendtBytes(format, size, sock)
+            results([ip,port],interval,transfer, formatut)
+
+
+        elif sjekkkmb=="MB":
+
+            format=sjekkkmb
+            formatut = "MB"
+            print(format)
+
+            transfer = FinnSendtBytes(format, size, sock)
+            results([ip,port],interval,transfer, formatut)
 
         elif sjekkb == "B":
 
-            result = ""
-            for i in range(len(size) - 1):
-                result += size[i]
+            transfer = FinnSendtBytes(format, size, sock)
+            results([ip,port],interval,transfer, formatut)
 
 
-            try:
-                prov = int(result)
-
-            except:
-                print("fungerer ikke")
-                sys.exit()
-
-
-            if not isinstance(prov, int):
-                print(result)
-                print("det går ikke")
-                sys.exit()
 
             format=sjekkb
             print(format)
-            transfer = sendmld(format, size,sock)
+            transfer = FinnSendtBytes(format, size, sock)
 
-            results([ip,port], interval, transfer)
+
+            #Transfer will be converted to KB
+            transfer= transfer*1000
+            results([ip,port], interval, transfer, formatut)
 
 
         else:
@@ -232,19 +242,50 @@ def klient(ip, port, tid, data, interval):
 
 
 
-def results(id, interval, transfer):
+
+def results(id, interval, transfer, formatut):
     # Calculate bandwidth in bits per second
-    bandwidth = transfer / interval
+
+    kbsent=0
+
+    bandwidth = (8*transfer/1000) / interval
+
+    #Får inn KB skal gi ut formatut
+
+    if formatut=="MB":
+
+        kbsent = transfer/1000
+
+        print("transfer" + str(transfer))
+        print("ut format " + str(kbsent))
+
+    elif formatut=="KB":
+
+        kbsent = transfer
+        print("ut format " + str(kbsent))
+
+    elif formatut =="B":
+
+        kbsent=transfer*1000
+        print("ut format " + str(kbsent))
+
+    else:
+        print("Gi gyldig format")
+        sys.exit()
+
 
     # Create a new table with the appropriate columns
     table = PrettyTable()
-    table.field_names = ["ID", "Interval (s)", "Transfer (kb)", "Bandwidth (mbps)"]
+    table.field_names = ["ID", "Interval (s)", f"Transfer ({formatut})", "Bandwidth (mbps)"]
 
     # Add a new row to the table
-    table.add_row([id, interval, transfer, bandwidth])
+    table.add_row([id, interval, kbsent, bandwidth])
 
     # Print the table
     print(table)
+
+
+
 
 
 
@@ -401,11 +442,9 @@ if __name__ == '__main__':
         #klient(args.serverip, args.port, args.time, args.num, args.interval)
 
         for k in client_ports:
-            thread = threading.Thread(target = klient, args = (args.serverip, args.port, args.time, args.num, args.interval,))
+            print("args" + args.format)
+            thread = threading.Thread(target = klient, args = (args.serverip, args.port, args.time, args.num, args.interval, args.format,))
             thread.start()
-
-
-        #i = i+1
 
 
 
