@@ -6,7 +6,7 @@ import sys
 import ipaddress
 import time
 from prettytable import *
-import _thread as thread
+#import _thread as thread
 
 
 
@@ -31,43 +31,49 @@ def server(ip, port, format):
 
 
 def handle_client(conn, addr, format, server_ip, server_port):
+    #Sending a message that a client has joined
     print(f"A simpleperf client with {addr} is connected with {server_ip}:{server_port}")
-    antallkb = 0
-    # Add the client to the list of clients
 
+    #Variable for recieved KB
+    antallkb = 0
+
+    #Creating a table from the module prettytable so that the table looks better
     aTable = PrettyTable()
     aTable.field_names = ["ID", "Interval", "Transfer", "Bandwidth"]
 
-
-    klienter.append(conn)
+    #adding client to a list
+    joinedClients.append(conn)
 
 
     # Loop to handle incoming messages from the client
     start_time = time.time()
 
+    #recieving data from client
     while True:
         data = conn.recv(1024)
         if not data:
             break
         message = data.decode()
+        #Increasing the variable, so we can se how many KB is recieved
         antallkb = antallkb +1
 
-
+    #Variable to see how much was recieved in the preferred format
     totalsent=0
-    bandwith=0
 
+    #Finding the time it took to recieve
     end_time = time.time()
     interval = end_time -start_time
 
+    #Answer in Bytes
     if format == "B":
         totalsent = antallkb*1000
 
-
+    #Answer in KB
     elif format == "KB":
         totalsent = antallkb
 
 
-
+    #Answer in MB
     elif format == "MB":
 
         totalsent = antallkb/1000
@@ -76,27 +82,38 @@ def handle_client(conn, addr, format, server_ip, server_port):
     #Since the assignment say that bandwith is given in "mbps" then I don´t implement anything for converting this
     #and just let it be in mbps
     bandwith = (antallkb*8)/1000
+
+    #Bandwith with two decimals
     bandwith = f"{bandwith:.2f}"
 
 
-
+    #Recieved bytes with two decimals
     totalBytesstr = f"{totalsent:.2f}"
     totalBytesstr = str (totalBytesstr)
 
 
 
+    #Adding some text to the table.
 
+    # Adding format
     totalBytesstr = totalBytesstr + f"{format}"
 
+    #Adding mbps to bandwith
     bandwith=str(bandwith) + "mbps"
 
+    #Interval in two decimals
     interval=f"{interval:.2f}"
+
+    #Adding a row to the table with values
     newrow = (addr, interval, totalBytesstr, bandwith )
 
     aTable.add_row(newrow)
+
+
     print(aTable)
 
 
+    #Sending a message to the client
     msg = f"Det ble motatt {antallkb} KB"
     conn.send(msg.encode())
 
@@ -109,12 +126,9 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
     start_time = time.time()
 
 
-
-
     #Creating a socket
     sock = socket(AF_INET, SOCK_STREAM)
     sock.connect((ip, port))
-
 
 
 
@@ -122,6 +136,7 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
     if dataSendes:
         size  = list(dataSendes)
 
+        #Checking format
         sjekkkmb = size[-2] + size[-1]
         print(sjekkkmb)
         sjekkb = size[-1]
@@ -131,12 +146,65 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
 
 
         if sjekkkmb=="KB":
+            #variable to use for intervl
+            extra = interval
+
+            #Getting the formar
+            format=sjekkkmb
+
+            # finding how much was sent
+            transfer = FinnSendtBytesNum(size, sock)
+            intervalstr = f"0  - {tid}"
+
+            #Setting up interval to use in the table
+            intervalstart = 0
+            intervalslutt = time.time()-start_time
+            intervalslutt = f"{intervalslutt:.2f}"
+
+            #if interval is not given
+            if interval == tid:
+
+
+                intervalstr= f"{intervalstart} - {intervalslutt}"
+
+                #Creating table
+                table = results([ip,port], tid, transfer, formatut, interval,intervalstr)
+
+                print(table)
+
+            else:
+                #If interval is given
+                while time.time() > interval:
+                    intervalslutt = time.time() - start_time
+                    intervalstr = f"{intervalstart} -  {intervalslutt}"
+
+                    #creating a table
+                    table = results([ip,port], tid, transfer, formatut, interval,intervalstr)
+
+                    #splitting up the table to only get the intervals
+                    table_str = str(table)
+                    print(table_str.strip().split('\n')[1])
+
+                    last_row_str = table_str.strip().split('\n')[-2]
+
+                    #Getting the latest update
+                    print(last_row_str)
+
+                    #making the interval "bigger" so we can continue getting uodates
+                    extra = extra+interval
+                    intervalstart = intervalstart + interval
+                    intervalslutt = intervalslutt + interval
+                    print(table)
+
+
+        #Same for MB and B
+        elif sjekkkmb=="MB":
             extra = interval
 
             format=sjekkkmb
-            print(format)
+            #print(format)
 
-            transfer = FinnSendtBytesNum(format, size, sock)
+            transfer = FinnSendtBytesNum(size, sock)
             intervalstr = f"0  - {tid}"
 
             intervalstart = 0
@@ -146,6 +214,8 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
             if interval == tid:
 
                 intervalstr= f"{intervalstart} - {intervalslutt}"
+                #Changing the format
+                transfer = transfer / 1000
                 table = results([ip,port], tid, transfer, formatut, interval,intervalstr)
 
                 print(table)
@@ -167,59 +237,85 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
                     extra = extra+interval
                     intervalstart = intervalstart + interval
                     intervalslutt = intervalslutt + interval
+                    print(table)
 
 
-        elif sjekkkmb=="MB":
+
+        elif sjekkb == "B":
+            extra = interval
 
             format=sjekkkmb
             print(format)
 
-            transfer = FinnSendtBytesNum(format, size, sock)
-            table = results([ip,port],tid,transfer, formatut)
+            transfer = FinnSendtBytesNum(size, sock)
+            intervalstr = f"0  - {tid}"
 
-        elif sjekkb == "B":
+            intervalstart = 0
+            intervalslutt = time.time()-start_time
+            intervalslutt = f"{intervalslutt:.2f}"
 
-            transfer = FinnSendtBytesNum(sjekkb, size, sock)
-            table = results([ip,port],tid,transfer, formatut)
+            if interval == tid:
+
+                intervalstr= f"{intervalstart} - {intervalslutt}"
+                #changing the format
+                transfer = transfer*1000
+                table = results([ip,port], tid, transfer, formatut, interval,intervalstr)
+
+                print(table)
+
+            #if no format was given the it will use the standard format
+            else:
+
+                while time.time() > interval:
+                    intervalslutt = time.time() - start_time
+                    intervalstr = f"{intervalstart} -  {intervalslutt}"
+                    print("interval:" + intervalstr)
+                    table = results([ip,port], tid, transfer, formatut, interval,intervalstr)
+
+                    table_str = str(table)
+                    print(table_str.strip().split('\n')[1])
+
+                    last_row_str = table_str.strip().split('\n')[-2]
+                    print(last_row_str)
+
+                    extra = extra+interval
+                    intervalstart = intervalstart + interval
+                    intervalslutt = intervalslutt + interval
+                    print(table)
 
 
 
-            format=sjekkb
-            print(format)
-            transfer = FinnSendtBytesNum(format, size, sock)
-
-
-            #Transfer will be converted to KB
-            transfer= transfer*1000
-            table = results([ip,port], tid, transfer, formatut)
-
-
+        #if given wrong format name
         else:
             print("Feil")
             sys.exit()
 
-
+    #If time was specified and not format
     else:
+        #creating a time variable of how long it should run
         endtime = time.time() + tid
         senddata = "A"
 
+        #Message to be sent
         while len(senddata) < 1000:
             senddata += "A"
 
-
+        #variables to use later
         extra = interval
         message = senddata
         transfer =0
         intervalstart = 0
         intervalslutt = interval
 
-
+        #running for the time given
         while time.time() < endtime:
 
-
+            #sending message
             sock.sendall(message.encode())
             transfer=transfer+1
 
+            #printing out uodates underway if it was given an interval
+            #rest of the code is like above
             if time.time() - start_time == extra:
 
                 intervalstr = f"{intervalstart} -  {intervalslutt}"
@@ -236,11 +332,12 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
                 intervalstart = intervalstart + interval
                 intervalslutt = intervalslutt + interval
 
+        table = results([ip,port], tid, transfer, formatut, interval,intervalstr)
+        print(table)
 
 
 
-
-
+    #Waiting for end message to close connection with client
     while True:
         after = input("To exit write BYE\n")
 
@@ -249,7 +346,7 @@ def klient(ip, port, tid, dataSendes, interval, formatut):
             sys.exit()
 
 
-def FinnSendtBytesNum(format, array, sock):
+def FinnSendtBytesNum(array, sock):
 
 
 
@@ -476,7 +573,7 @@ def check_format(format):
 
 if __name__ == '__main__':
 
-    klienter = []
+    joinedClients = []
 
     #Checks the argument given when trying to run the program
 
@@ -494,7 +591,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--serverip', '-I', type=str, default='127.0.0.1')
 
-    parser.add_argument('--time', '-t', type=int, default=1)
+    parser.add_argument('--time', '-t', type=int, default=50)
 
     parser.add_argument('--interval', '-i', type=int)
 
