@@ -123,6 +123,8 @@ def handle_client(conn, addr, format, server_ip, server_port):
 
 #Client code
 def client(ip, port, tid, dataSendes, interval, format_out):
+
+    intervalstr =""
     start_time = time.time()
 
 
@@ -245,7 +247,6 @@ def client(ip, port, tid, dataSendes, interval, format_out):
             extra = interval
 
             format=check_MB
-            print(format)
 
             transfer = FinnSendtBytesNum(size, sock)
             intervalstr = f"0  - {tid}"
@@ -335,8 +336,13 @@ def client(ip, port, tid, dataSendes, interval, format_out):
                 interval_end = interval_end + interval
 
 
+    intervalstr = f"{interval_start} -  {interval_end}"
+    table = results([ip, port], tid, transfer, format_out, interval, intervalstr)
+    print(table)
 
 
+
+"""
     #Waiting for end message to close connection with client
     while True:
         after = input("To exit write BYE\n")
@@ -344,6 +350,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
         if after == "BYE":
             sock.close()
             sys.exit()
+"""
 
 #Function to send and se how much data was sent
 def FinnSendtBytesNum(array, sock):
@@ -452,8 +459,8 @@ def results(id, tid, transfer, format_out, interval, intervalstr):
     kb_sent=0
 
     # Calculate bandwidth in kilo bits per second
-    bandwidth = (8*transfer) / interval
-
+    bandwidth = 8*transfer
+    bandwidth = bandwidth / interval
     #Takes in KB and will convert to format_out and put this in the table
 
     #converts to MB
@@ -586,7 +593,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--serverip', '-I', type=str, default='127.0.0.1')
 
-    parser.add_argument('--time', '-t', type=int, default=50)
+    parser.add_argument('--time', '-t', type=int, default=25)
 
     parser.add_argument('--interval', '-i', type=int)
 
@@ -647,7 +654,6 @@ if __name__ == '__main__':
 
         #Starts all clients, even if there are multiples
         for k in client_ports:
-            print("args" + args.format)
             thread = threading.Thread(target = client, args = (args.serverip, args.port, args.time, args.num, args.interval, args.format,))
             thread.start()
 
