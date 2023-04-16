@@ -17,3 +17,14 @@ To run Simpleperf, start with writing "python3 simpleperf" and then you need
 either a "-s" or a "-c" tag for starting simpleperf in either server mode
 or client mode. After that you need to use the different flags to run it as 
 you preferred.
+
+looking at line 580 through 600, you can see all different flags, and their function. 
+That is how to run the program. 
+
+Some important flags are: 
+
+-t = time the client will run for
+
+-b = Binding the server to an IP-address
+
+-I = Binding ther client to an IP-address

@@ -6,8 +6,6 @@ import sys
 import ipaddress
 import time
 from prettytable import *
-#import _thread as thread
-
 
 
 
@@ -17,7 +15,8 @@ def server(ip, port, format):
     #Creating a server
     sock = socket(AF_INET, SOCK_STREAM)
     sock.bind((ip, port))
-    #server can have connections with 5 clients at the same time
+
+    #server can have connections with up to 5 clients at the same time
     sock.listen(5)
 
     print(f"A simpleperf server is listening on port {port}")
@@ -31,6 +30,7 @@ def server(ip, port, format):
 
 
 def handle_client(conn, addr, format, server_ip, server_port):
+
     #Sending a message that a client has joined
     print(f"A simpleperf client with {addr} is connected with {server_ip}:{server_port}")
 
@@ -57,8 +57,10 @@ def handle_client(conn, addr, format, server_ip, server_port):
         #Increasing the variable, so we can se how many KB is received
         Total_KB = Total_KB +1
 
+
     #Variable to see how much was received in the preferred format
     Total_sent=0
+
 
     #Finding the time it took to receive
     end_time = time.time()
@@ -124,6 +126,7 @@ def handle_client(conn, addr, format, server_ip, server_port):
 #Client code
 def client(ip, port, tid, dataSendes, interval, format_out):
 
+    #Using later to print table
     intervalstr =""
     start_time = time.time()
 
@@ -142,7 +145,6 @@ def client(ip, port, tid, dataSendes, interval, format_out):
         check_MB = size[-2] + size[-1]
         print(check_MB)
         sjekkb = size[-1]
-
 
 
 
@@ -169,10 +171,8 @@ def client(ip, port, tid, dataSendes, interval, format_out):
 
                 intervalstr= f"{interval_start} - {interval_end}"
 
-                #Creating table
-                table = results([ip,port], tid, transfer, format_out, interval, intervalstr)
 
-                print(table)
+
 
             else:
                 #If interval is given
@@ -196,7 +196,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
                     extra = extra+interval
                     interval_start = interval_start + interval
                     interval_end = interval_end + interval
-                    print(table)
+
 
 
         #Same for MB and B
@@ -204,7 +204,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
             extra = interval
 
             format=check_MB
-            #print(format)
+
 
             transfer = FinnSendtBytesNum(size, sock)
             intervalstr = f"0  - {tid}"
@@ -218,9 +218,6 @@ def client(ip, port, tid, dataSendes, interval, format_out):
                 intervalstr= f"{interval_start} - {interval_end}"
                 #Changing the format
                 transfer = transfer / 1000
-                table = results([ip,port], tid, transfer, format_out, interval, intervalstr)
-
-                print(table)
 
             else:
 
@@ -239,7 +236,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
                     extra = extra+interval
                     interval_start = interval_start + interval
                     interval_end = interval_end + interval
-                    print(table)
+
 
 
 
@@ -260,9 +257,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
                 intervalstr= f"{interval_start} - {interval_end}"
                 #changing the format
                 transfer = transfer*1000
-                table = results([ip,port], tid, transfer, format_out, interval, intervalstr)
 
-                print(table)
 
             #if no format was given it will use the standard format
             else:
@@ -282,7 +277,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
                     extra = extra+interval
                     interval_start = interval_start + interval
                     interval_end = interval_end + interval
-                    print(table)
+
 
 
 
@@ -342,7 +337,7 @@ def client(ip, port, tid, dataSendes, interval, format_out):
 
 
 
-"""
+
     #Waiting for end message to close connection with client
     while True:
         after = input("To exit write BYE\n")
@@ -350,7 +345,67 @@ def client(ip, port, tid, dataSendes, interval, format_out):
         if after == "BYE":
             sock.close()
             sys.exit()
-"""
+
+
+
+
+#Function to create a table to print all the statistics
+def results(id, tid, transfer, format_out, interval, intervalstr):
+
+    #setting a start time
+    start_time = time.time()
+
+    kb_sent=0
+
+    # Calculate bandwidth in kilo bits per second
+    bandwidth = 8*transfer
+    bandwidth = bandwidth / interval
+    #Takes in KB and will convert to format_out and put this in the table
+
+    #converts to MB
+    if format_out== "MB":
+
+        kb_sent = transfer/1000
+        bandwidth = bandwidth/1000
+
+
+    #Stays as KB
+    elif format_out== "KB":
+
+        kb_sent = transfer
+
+    #Converts to B
+    elif format_out == "B":
+
+        kb_sent=transfer*1000
+        bandwidth=bandwidth*1000
+
+    #if format is wrong then an error message will be given
+    else:
+        print("Please give a valid format")
+        sys.exit()
+
+
+    # Create a new table with the appropriate columns
+    #using prettyTable
+    table = PrettyTable()
+    table.field_names = ["ID", "Interval (s)", f"Transfer ({format_out})", "Bandwidth (mbps)"]
+
+    # Add a new row to the table
+
+    kb_sent = f"{kb_sent:.2f}"
+    bandwidth = f"{bandwidth:.2f}"
+
+    #Adding the row
+    table.add_row([id, intervalstr, kb_sent, bandwidth])
+
+
+    #Returns
+    return table
+
+
+
+
 
 #Function to send and se how much data was sent
 def FinnSendtBytesNum(array, sock):
@@ -450,66 +505,6 @@ def FinnSendtBytesNum(array, sock):
 
 
 
-#Function to create a table to print all the statistics
-def results(id, tid, transfer, format_out, interval, intervalstr):
-
-    #setting a start time
-    start_time = time.time()
-
-    kb_sent=0
-
-    # Calculate bandwidth in kilo bits per second
-    bandwidth = 8*transfer
-    bandwidth = bandwidth / interval
-    #Takes in KB and will convert to format_out and put this in the table
-
-    #converts to MB
-    if format_out== "MB":
-
-        kb_sent = transfer/1000
-        bandwidth = bandwidth/1000
-
-
-    #Stays as KB
-    elif format_out== "KB":
-
-        kb_sent = transfer
-
-    #Converts to B
-    elif format_out == "B":
-
-        kb_sent=transfer*1000
-        bandwidth=bandwidth*1000
-        #print("ut format " + str(kb_sent))
-
-    #if format is wrong then an error message will be given
-    else:
-        print("Please give a valid format")
-        sys.exit()
-
-
-    # Create a new table with the appropriate columns
-    #using prettyTable
-    table = PrettyTable()
-    table.field_names = ["ID", "Interval (s)", f"Transfer ({format_out})", "Bandwidth (mbps)"]
-
-    # Add a new row to the table
-
-    kb_sent = f"{kb_sent:.2f}"
-    bandwidth = f"{bandwidth:.2f}"
-
-    #Adding the row
-    table.add_row([id, intervalstr, kb_sent, bandwidth])
-
-
-    #Returns
-    return table
-
-
-
-
-
-
 
 
 def check_port(val):
@@ -556,6 +551,7 @@ def check_parallel(parallel):
         sys.exit()
 
 
+"""
 def check_format(format):
     try:
         Format = str(format)
@@ -564,7 +560,7 @@ def check_format(format):
     if Format != "KB" and Format != "MB" and Format != "B":
         print('it is not valid format')
         sys.exit()
-
+"""
 
 
 
